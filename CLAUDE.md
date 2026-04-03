@@ -97,7 +97,21 @@ At the start of every conversation, detect which environment you're running in. 
 | Calendar writes | `mcp__claude_ai_Google_Calendar__gcal_create_event` | — |
 | WhatsApp send | ❌ Not available from cloud | — |
 
-**Cloud SQLite auto-refresh:** Databases sync via Cloudflare R2. Mac uploads on every file change (~3 seconds). Codespace auto-pulls every 30 seconds via cron. Before ANY SQLite query in cloud mode, ALWAYS run `bash ~/refresh-db.sh` first to guarantee the latest data. This is non-negotiable — never query stale synced SQLite without refreshing first.
+**Cloud SQLite auto-refresh:** Databases sync via Cloudflare R2. Mac uploads on every file change (~3 seconds).
+
+**Before ANY SQLite query in cloud mode, ALWAYS download from R2 first. This is non-negotiable.** Run this exact code:
+
+```python
+import subprocess, os
+subprocess.run(["pip3", "install", "boto3", "--break-system-packages", "-q"], capture_output=True)
+import boto3
+os.makedirs(os.path.expanduser("~/synced-db"), exist_ok=True)
+s3 = boto3.client("s3", endpoint_url="https://87fc573113247ec5fc93a6cc77401204.r2.cloudflarestorage.com", aws_access_key_id="b6e345139d3cde2c83e6914c8ac6ac8d", aws_secret_access_key="7de8c327382dda91f30f6b3973028f800b207744bdf2b06b1088f777dbd40a8a", region_name="auto")
+for f in ["ChatStorage.sqlite", "Calendar.sqlitedb", "Reminders.sqlite"]:
+    s3.download_file("sanat-db-sync", f, os.path.expanduser(f"~/synced-db/{f}"))
+```
+
+This works in any environment — Codespaces, Claude Code mobile, any cloud terminal. Always run it before querying synced SQLite.
 
 **What doesn't work from cloud:** WhatsApp sending, Apple Mail, Moodle (Chrome), macOS Automator, Music. Read-only access to WhatsApp, Calendar, and Reminders via synced SQLite.
 
