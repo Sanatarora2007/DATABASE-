@@ -33,27 +33,32 @@ ln -sf "$(pwd)/memory" "$PROJ_DIR/memory"
 echo ""
 echo "=== Pulling synced SQLite databases ==="
 
-# Pull databases from db-sync branch
-mkdir -p ~/synced-db
-if git fetch origin db-sync 2>/dev/null; then
-    git show origin/db-sync:db-sync/snapshots/ChatStorage.sqlite > ~/synced-db/ChatStorage.sqlite 2>/dev/null && echo "✓ WhatsApp DB synced" || echo "✗ WhatsApp DB not found"
-    git show origin/db-sync:db-sync/snapshots/Calendar.sqlitedb > ~/synced-db/Calendar.sqlitedb 2>/dev/null && echo "✓ Calendar DB synced" || echo "✗ Calendar DB not found"
-    git show origin/db-sync:db-sync/snapshots/Reminders.sqlite > ~/synced-db/Reminders.sqlite 2>/dev/null && echo "✓ Reminders DB synced" || echo "✗ Reminders DB not found"
-else
-    echo "⚠ db-sync branch not found — run sync from Mac first"
-fi
+# Find the repo directory (varies by Codespace setup)
+REPO_DIR="$(pwd)"
 
-# Create a refresh script for pulling latest data
-cat > ~/refresh-db.sh << 'REFRESH'
+mkdir -p ~/synced-db
+
+# Create refresh script that auto-detects repo path
+cat > ~/refresh-db.sh << REFRESH
 #!/bin/bash
-cd ~/DATABASE- || cd /workspaces/DATABASE-
+cd "$REPO_DIR" 2>/dev/null || cd ~/DATABASE- 2>/dev/null || cd /workspaces/DATABASE- 2>/dev/null || { echo "✗ Can't find repo"; exit 1; }
 git fetch origin db-sync 2>/dev/null
 git show origin/db-sync:db-sync/snapshots/ChatStorage.sqlite > ~/synced-db/ChatStorage.sqlite 2>/dev/null
 git show origin/db-sync:db-sync/snapshots/Calendar.sqlitedb > ~/synced-db/Calendar.sqlitedb 2>/dev/null
 git show origin/db-sync:db-sync/snapshots/Reminders.sqlite > ~/synced-db/Reminders.sqlite 2>/dev/null
-echo "✓ Databases refreshed at $(date)"
+echo "✓ Databases refreshed at \$(date)"
 REFRESH
 chmod +x ~/refresh-db.sh
+
+# Initial pull
+bash ~/refresh-db.sh
+
+# Auto-refresh every 60 seconds via cron
+(crontab -l 2>/dev/null; echo "* * * * * bash ~/refresh-db.sh >> /tmp/db-refresh.log 2>&1") | sort -u | crontab -
+# Start cron daemon if not running
+sudo service cron start 2>/dev/null || true
+
+echo "✓ Auto-refresh cron installed (every 60 seconds)"
 
 echo ""
 echo "=== Claude Code Setup Complete ==="

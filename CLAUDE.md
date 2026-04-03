@@ -97,7 +97,7 @@ At the start of every conversation, detect which environment you're running in. 
 | Calendar writes | `mcp__claude_ai_Google_Calendar__gcal_create_event` | — |
 | WhatsApp send | ❌ Not available from cloud | — |
 
-**Cloud SQLite refresh:** Run `~/refresh-db.sh` to pull latest snapshots from GitHub. Databases sync from Mac on every change (fswatch trigger).
+**Cloud SQLite auto-refresh:** A cron job pulls fresh databases every 60 seconds. But before ANY SQLite query in cloud mode, ALWAYS run `bash ~/refresh-db.sh` first to guarantee the latest data. This is non-negotiable — never query stale synced SQLite without refreshing first.
 
 **What doesn't work from cloud:** WhatsApp sending, Apple Mail, Moodle (Chrome), macOS Automator, Music. Read-only access to WhatsApp, Calendar, and Reminders via synced SQLite.
 
