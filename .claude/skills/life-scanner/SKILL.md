@@ -24,41 +24,80 @@ These recurring commitments exist every day and must be accounted for when calcu
 
 ---
 
+## ENVIRONMENT DETECTION
+
+Before pulling data, detect which environment you're running in:
+
+**Mac (local):** Check if `mcp__apple-events__calendar_events` is available. If yes → Mac mode. All MCPs are available, use SQLite-first strategy per CLAUDE.md.
+
+**Cloud (Codespaces / non-Mac):** If Apple Events MCP is not available → Cloud mode. Use cloud-compatible MCPs and synced SQLite databases.
+
+| Source | Mac (local) | Cloud (Codespaces) |
+|--------|------------|-------------------|
+| Calendar | `mcp__apple-events__calendar_events` or SQLite | `mcp__claude_ai_Google_Calendar__gcal_list_events` |
+| Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` | `mcp__claude_ai_Gmail__gmail_search_messages` |
+| WhatsApp | SQLite first, then `mcp__whatsapp__list_messages` | Synced SQLite at `~/synced-db/ChatStorage.sqlite` (if available). If not synced yet, skip and note "⚠️ WhatsApp unavailable — Mac offline or sync not configured" |
+| Reminders | `mcp__apple-events__reminders_tasks` or SQLite | Skip — note "⚠️ Reminders unavailable from cloud. Check Apple Reminders on your phone." |
+| Moodle | Chrome MCP (optional) | Skip — note "⚠️ Moodle requires browser on Mac" |
+| Calendar writes | AppleScript via `mcp__macos-automator__execute_script` | `mcp__claude_ai_Google_Calendar__gcal_create_event` |
+| Reminder writes | `mcp__apple-events__reminders_tasks` create | Skip — suggest user add manually on phone |
+
+---
+
 ## PHASE 1: SILENT DATA PULL
 
 Pull from all sources before writing anything. Do not narrate the extraction process to the user.
 
 **Parallelism plan — launch these concurrently in a single message wherever possible:**
-- **Batch 1 (MCP calls — fire simultaneously):** Apple Calendar read + Apple Reminders "Journey" read + Apple Reminders "ATTENDANCE" read + Gmail search_messages (all keyword queries). These are independent MCP calls with no dependencies — launch them all in the same tool-call message.
-- **Batch 2 (WhatsApp MCP — can overlap with Batch 1):** WhatsApp list_messages to get Bulletin announcements and recent chats. Use appropriate filters to surface high-signal conversations.
-- **Batch 3 (Gmail detail reads — after Batch 1 returns):** For each promising subject from Batch 1's Gmail results, use `gmail_read_message` to read full body.
+- **Batch 1 (fire simultaneously):** Calendar read + Reminders "Journey" read (Mac only) + Reminders "ATTENDANCE" read (Mac only) + Gmail search_messages. These are independent calls — launch them all in the same tool-call message.
+- **Batch 2 (can overlap with Batch 1):** WhatsApp — SQLite query on Mac, synced SQLite on cloud, or WhatsApp MCP fallback.
+- **Batch 3 (after Batch 1 returns):** For each promising subject from Batch 1's Gmail results, use `gmail_read_message` to read full body.
 
-**Batch 3 notes — Moodle access (optional):** Moodle access now requires Chrome/browser navigation (no MCP available). This is optional — if Moodle data is difficult to access or if WhatsApp Bulletin announcements already surface all critical deadlines, skip Moodle and rely on Gmail + WhatsApp for deadline discovery.
+**Batch 3 notes — Moodle access (optional, Mac only):** Moodle access requires Chrome/browser navigation. Skip on cloud. On Mac, optional — if WhatsApp Bulletin announcements already surface all critical deadlines, skip Moodle.
 
 **Reuse Phase 1 data for deduplication:** The calendar and reminders data pulled here serves double duty — it feeds the brief AND acts as the deduplication reference for Phase 3. Do NOT re-read calendar/reminders in Phase 3. Store the Phase 1 results internally and reference them when creating events later.
 
-### Source 1: Apple Calendar
-- Use `mcp__apple-events__calendar_events` with action `read`
+### Source 1: Calendar
+
+**On Mac:**
+- Use Apple Calendar SQLite first: `~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`
+- Fallback: `mcp__apple-events__calendar_events` with action `read`
+
+**On Cloud:**
+- Use `mcp__claude_ai_Google_Calendar__gcal_list_events` to read events from all calendars
 - Cover today through +14 days
+
 - Pull from ALL calendars — do not filter. The user's CLAUDE.md specifies routing rules (Calendar = general, EXAMS = tests, DAILY = routine), but read from all of them
 - Extract: event title, start/end times, location, calendar name, notes
 
-### Source 2: Gmail
-- Use `mcp__d55f8dd2-5ec9-4dfe-8415-d9211ea483d0__gmail_search_messages` with queries: "opportunity", "event", "workshop", "deadline", "register", "invitation", "assignment", "submission"
+### Source 2: Gmail (same on Mac and Cloud)
+- Use `mcp__claude_ai_Gmail__gmail_search_messages` with queries: "opportunity", "event", "workshop", "deadline", "register", "invitation", "assignment", "submission"
 - Limit results to 50 messages
-- For each promising subject, use `mcp__d55f8dd2-5ec9-4dfe-8415-d9211ea483d0__gmail_read_message` to read the full body
+- For each promising subject, use `mcp__claude_ai_Gmail__gmail_read_message` to read the full body
 - **Check reply status**: Look at the email thread. If the user has already replied, mark it as handled. Only flag genuinely unresolved messages as action items.
 - Extract: sender, subject, full body text, date, CC list, reply status, actionability
 
-### Source 3: WhatsApp (via WhatsApp MCP)
-- Use `mcp__whatsapp__list_chats` to get all WhatsApp chats with recent messages
-- Use `mcp__whatsapp__list_messages` with filters to pull messages from the last 7 days
+### Source 3: WhatsApp
+
+**On Mac:**
+- SQLite first: `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite`
+- Query ZWAMESSAGE + ZWACHATSESSION for messages from last 7 days
+- Search for "Plaksha Bulletin" group and recent high-signal chats
+- Fallback: `mcp__whatsapp__list_chats` + `mcp__whatsapp__list_messages`
+
+**On Cloud:**
+- Check if synced SQLite exists at `~/synced-db/ChatStorage.sqlite`
+- If yes: query it the same way as Mac SQLite
+- If no: skip WhatsApp and note "⚠️ WhatsApp data unavailable — run /life-scanner from Mac or ensure SQLite sync is active"
+
 - **First**: Search for "Plaksha Bulletin" or check the returned chats for high-signal Bulletin announcements (events, opportunities, deadlines)
 - **Then**: Check other recent group chats — filter by name patterns matching class groups, project teams, clubs, or any group mentioning events or deadlines
 - **Check reply status**: Review the returned messages to see if the user has already sent a reply in that chat. If replied, note it as handled.
 - Extract: chat name, sender, full message text, timestamp, actionability
 
-### Source 4: Apple Reminders
+### Source 4: Reminders
+
+**On Mac:**
 - Use `mcp__apple-events__reminders_tasks` with action `read`
 - **Tasks**: filterList = "Journey" (the user's primary task list)
 - **Attendance**: filterList = "ATTENDANCE" (attendance tracking)
@@ -66,11 +105,15 @@ Pull from all sources before writing anything. Do not narrate the extraction pro
 - For Attendance: extract all entries to calculate per-subject attendance percentages
 - Flag: overdue tasks (due date < today), high-priority tasks, tasks with no date that relate to upcoming events
 
-### Source 5: Moodle (dle.plaksha)
-- Use Chrome MCP tools to navigate to dle.plaksha.edu.in
+**On Cloud:**
+- Skip entirely. Note in brief: "⚠️ Reminders (Journey + Attendance) unavailable from cloud — check Apple Reminders on your phone."
+
+### Source 5: Moodle (dle.plaksha) — Mac only
+- Use Chrome MCP tools to navigate to dle.plaksha.edu.in (Mac only)
 - Check the dashboard or upcoming events for: assignment deadlines, new submissions, course announcements
 - If Moodle login is required and not active, note that Moodle data couldn't be pulled and flag it
 - Extract: assignment names, due dates/times, submission status, course name
+- **On Cloud:** Skip. Note "⚠️ Moodle requires browser — run from Mac."
 
 ---
 
@@ -233,8 +276,14 @@ These are non-optional commitments with clear dates/times that get added silentl
 - **Non-negotiable daily blocks** — Gym, Research (Bloom's Taxonomy), and Marketing (AgriGuru) — get added to the DAILY calendar for every day in the 7-day structural map, automatically. No asking. Use the specific free-window time slots you already computed in the Week Ahead section. If a block had no clean window on a given day (you marked it "❌ No clean 2-hr window" or "❌ Displaced by..."), skip creating it for that day and note it in the confirmation summary.
 
 **Hybrid approach — reading vs writing:**
-- **Reading** calendar events (Phase 1, deduplication): Use `mcp__apple-events__calendar_events` with action `read`. The MCP is reliable and fast for reads.
-- **Writing** calendar events (creating new events): Use `mcp__Control_your_Mac__osascript` (AppleScript). The MCP rejects emojis in titles, but AppleScript supports full Unicode. Use AppleScript for ALL event creation so every event gets an emoji title.
+
+**On Mac:**
+- **Reading** calendar events (Phase 1, deduplication): Use Apple Calendar SQLite or `mcp__apple-events__calendar_events` with action `read`.
+- **Writing** calendar events (creating new events): Use `mcp__macos-automator__execute_script` (AppleScript). The Apple Events MCP rejects emojis in titles, but AppleScript supports full Unicode. Use AppleScript for ALL event creation so every event gets an emoji title.
+
+**On Cloud:**
+- **Reading**: Already done via `mcp__claude_ai_Google_Calendar__gcal_list_events` in Phase 1.
+- **Writing**: Use `mcp__claude_ai_Google_Calendar__gcal_create_event`. Emojis work natively in Google Calendar titles. Route to the equivalent Google Calendar (map "EXAMS" → "EXAMS", "DAILY" → "DAILY", "Calendar" → primary calendar). If those calendars don't exist in Google Calendar, create events on the primary calendar with a prefix tag like `[EXAMS]` or `[DAILY]` in the title.
 
 **AppleScript template — BATCH multiple events in a single call:**
 
@@ -350,10 +399,11 @@ Compile every actionable task, follow-up, or registration surfaced in the brief 
 
 For each item:
 1. Check the existing "Journey" reminders for a match. If already tracked, **skip it**.
-2. If not tracked, create it using `mcp__apple-events__reminders_tasks` with action `create`, targetList "Journey".
-3. Assign a due date based on urgency (today for urgent, next business day for follow-ups, the actual deadline date for submissions).
-4. Set priority: HIGH (priority 1) for overdue or same-day items, MEDIUM (priority 5) for this-week items, NONE (priority 0) for nice-to-haves.
-5. Assign to the most contextually appropriate section within "Journey". If ambiguous, assign to the top of the list.
+2. **On Mac:** If not tracked, create it using `mcp__apple-events__reminders_tasks` with action `create`, targetList "Journey".
+3. **On Cloud:** Cannot create Apple Reminders remotely. Instead, output a clearly formatted "📱 ADD TO REMINDERS" section at the end of the brief listing each task with title, due date, and priority so the user can add them on their phone.
+4. Assign a due date based on urgency (today for urgent, next business day for follow-ups, the actual deadline date for submissions).
+5. Set priority: HIGH (priority 1) for overdue or same-day items, MEDIUM (priority 5) for this-week items, NONE (priority 0) for nice-to-haves.
+6. Assign to the most contextually appropriate section within "Journey". If ambiguous, assign to the top of the list.
 
 ---
 
