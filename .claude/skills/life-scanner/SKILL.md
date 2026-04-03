@@ -34,10 +34,10 @@ Before pulling data, detect which environment you're running in:
 
 | Source | Mac (local) | Cloud (Codespaces) |
 |--------|------------|-------------------|
-| Calendar | `mcp__apple-events__calendar_events` or SQLite | `mcp__claude_ai_Google_Calendar__gcal_list_events` |
+| Calendar | SQLite first (`~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`), then `mcp__apple-events__calendar_events` | Synced SQLite at `~/synced-db/Calendar.sqlitedb`. Fallback: `mcp__claude_ai_Google_Calendar__gcal_list_events` |
 | Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` | `mcp__claude_ai_Gmail__gmail_search_messages` |
-| WhatsApp | SQLite first, then `mcp__whatsapp__list_messages` | Synced SQLite at `~/synced-db/ChatStorage.sqlite` (if available). If not synced yet, skip and note "⚠️ WhatsApp unavailable — Mac offline or sync not configured" |
-| Reminders | `mcp__apple-events__reminders_tasks` or SQLite | Skip — note "⚠️ Reminders unavailable from cloud. Check Apple Reminders on your phone." |
+| WhatsApp | SQLite first (`~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite`), then `mcp__whatsapp__list_messages` | Synced SQLite at `~/synced-db/ChatStorage.sqlite`. If not available, note "⚠️ WhatsApp unavailable — Mac offline or sync not configured" |
+| Reminders | SQLite first (`~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Reminders.sqlite`), then `mcp__apple-events__reminders_tasks` | Synced SQLite at `~/synced-db/Reminders.sqlite`. If not available, note "⚠️ Reminders unavailable — check Apple Reminders on your phone" |
 | Moodle | Chrome MCP (optional) | Skip — note "⚠️ Moodle requires browser on Mac" |
 | Calendar writes | AppleScript via `mcp__macos-automator__execute_script` | `mcp__claude_ai_Google_Calendar__gcal_create_event` |
 | Reminder writes | `mcp__apple-events__reminders_tasks` create | Skip — suggest user add manually on phone |
@@ -64,7 +64,9 @@ Pull from all sources before writing anything. Do not narrate the extraction pro
 - Fallback: `mcp__apple-events__calendar_events` with action `read`
 
 **On Cloud:**
-- Use `mcp__claude_ai_Google_Calendar__gcal_list_events` to read events from all calendars
+- Check if synced SQLite exists at `~/synced-db/Calendar.sqlitedb`
+- If yes: query it using the same SQLite strategy as Mac (CalendarItem table, add 978307200 to timestamps)
+- If no: fallback to `mcp__claude_ai_Google_Calendar__gcal_list_events`
 - Cover today through +14 days
 
 - Pull from ALL calendars — do not filter. The user's CLAUDE.md specifies routing rules (Calendar = general, EXAMS = tests, DAILY = routine), but read from all of them
@@ -106,7 +108,9 @@ Pull from all sources before writing anything. Do not narrate the extraction pro
 - Flag: overdue tasks (due date < today), high-priority tasks, tasks with no date that relate to upcoming events
 
 **On Cloud:**
-- Skip entirely. Note in brief: "⚠️ Reminders (Journey + Attendance) unavailable from cloud — check Apple Reminders on your phone."
+- Check if synced SQLite exists at `~/synced-db/Reminders.sqlite`
+- If yes: query ZREMCDSAVEDREMINDER table (ZTITLE, ZDUEDATE, ZPRIORITY, ZCOMPLETED, ZDISPLAYDATEDATE columns). Join with ZREMCDBASELIST to filter by list name ("Journey", "ATTENDANCE").
+- If no: note "⚠️ Reminders unavailable — check Apple Reminders on your phone"
 
 ### Source 5: Moodle (dle.plaksha) — Mac only
 - Use Chrome MCP tools to navigate to dle.plaksha.edu.in (Mac only)
