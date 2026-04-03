@@ -3,15 +3,15 @@
 # Triggers sync 10 seconds after the last change (debounce)
 # Run as a background daemon via launchd
 
-SYNC_SCRIPT="$HOME/DATABASE-/db-sync/sync-databases.sh"
+SYNC_SCRIPT="$HOME/DATABASE-/db-sync/r2-sync.py"
 LOG_FILE="/tmp/dbsync.log"
 
-# Database paths + their WAL files (WAL changes = new data written)
+# Database directories to watch
 WHATSAPP_DIR="$HOME/Library/Group Containers/group.net.whatsapp.WhatsApp.shared"
 CALENDAR_DIR="$HOME/Library/Group Containers/group.com.apple.calendar"
 REMINDERS_DIR="$HOME/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores"
 
-echo "$(date): DB watcher started" >> "$LOG_FILE"
+echo "$(date): DB watcher started (R2 mode)" >> "$LOG_FILE"
 
 # fswatch with 10-second debounce (--latency)
 # Only triggers after 10 seconds of no changes — batches rapid writes
@@ -28,5 +28,5 @@ fswatch \
     "$REMINDERS_DIR" \
     | while read -r changed_file; do
         echo "$(date): Change detected in $changed_file" >> "$LOG_FILE"
-        bash "$SYNC_SCRIPT" >> "$LOG_FILE" 2>&1
+        python3 "$SYNC_SCRIPT" >> "$LOG_FILE" 2>&1
     done

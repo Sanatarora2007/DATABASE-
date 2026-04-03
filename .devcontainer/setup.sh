@@ -31,34 +31,44 @@ mkdir -p "$PROJ_DIR"
 ln -sf "$(pwd)/memory" "$PROJ_DIR/memory"
 
 echo ""
-echo "=== Pulling synced SQLite databases ==="
+echo "=== Setting up R2 database sync ==="
 
-# Find the repo directory (varies by Codespace setup)
+# Install boto3 for R2 access
+pip3 install boto3 -q 2>/dev/null || pip3 install boto3 --break-system-packages -q 2>/dev/null
+
+# R2 credentials — set as Codespace secrets or env vars
+# In Codespace settings, add R2_ACCESS_KEY and R2_SECRET_KEY as secrets
 REPO_DIR="$(pwd)"
+if [ -n "$R2_ACCESS_KEY" ] && [ -n "$R2_SECRET_KEY" ]; then
+    cat > ~/.r2-credentials << CREDS
+access_key = $R2_ACCESS_KEY
+secret_key = $R2_SECRET_KEY
+CREDS
+    chmod 600 ~/.r2-credentials
+    echo "✓ R2 credentials configured from secrets"
+else
+    echo "⚠ Set R2_ACCESS_KEY and R2_SECRET_KEY as Codespace secrets for auto-sync"
+fi
 
 mkdir -p ~/synced-db
 
-# Create refresh script that auto-detects repo path
+# Create refresh script using R2
 cat > ~/refresh-db.sh << REFRESH
 #!/bin/bash
-cd "$REPO_DIR" 2>/dev/null || cd ~/DATABASE- 2>/dev/null || cd /workspaces/DATABASE- 2>/dev/null || { echo "✗ Can't find repo"; exit 1; }
-git fetch origin db-sync 2>/dev/null
-git show origin/db-sync:db-sync/snapshots/ChatStorage.sqlite > ~/synced-db/ChatStorage.sqlite 2>/dev/null
-git show origin/db-sync:db-sync/snapshots/Calendar.sqlitedb > ~/synced-db/Calendar.sqlitedb 2>/dev/null
-git show origin/db-sync:db-sync/snapshots/Reminders.sqlite > ~/synced-db/Reminders.sqlite 2>/dev/null
-echo "✓ Databases refreshed at \$(date)"
+cd "$REPO_DIR" 2>/dev/null || cd ~/DATABASE- 2>/dev/null
+python3 db-sync/r2-download.py
 REFRESH
 chmod +x ~/refresh-db.sh
 
 # Initial pull
-bash ~/refresh-db.sh
+bash ~/refresh-db.sh 2>/dev/null || echo "⚠ Initial DB pull failed — set R2 secrets"
 
-# Auto-refresh every 60 seconds via cron
+# Auto-refresh every 30 seconds via cron
 (crontab -l 2>/dev/null; echo "* * * * * bash ~/refresh-db.sh >> /tmp/db-refresh.log 2>&1") | sort -u | crontab -
-# Start cron daemon if not running
+(crontab -l 2>/dev/null; echo "* * * * * sleep 30 && bash ~/refresh-db.sh >> /tmp/db-refresh.log 2>&1") | sort -u | crontab -
 sudo service cron start 2>/dev/null || true
 
-echo "✓ Auto-refresh cron installed (every 60 seconds)"
+echo "✓ R2 auto-refresh installed (every 30 seconds)"
 
 echo ""
 echo "=== Claude Code Setup Complete ==="
