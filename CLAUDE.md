@@ -93,7 +93,7 @@ At the start of every conversation, detect which environment you're running in. 
 | WhatsApp | `~/synced-db/ChatStorage.sqlite` | ⚠️ "WhatsApp unavailable — run `~/refresh-db.sh` or check Mac is awake" |
 | Calendar | `~/synced-db/Calendar.sqlitedb` | `mcp__claude_ai_Google_Calendar__gcal_list_events` |
 | Reminders | `~/synced-db/Reminders.sqlite` | ⚠️ "Check Apple Reminders on your phone" |
-| Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` | — |
+| Gmail | `~/synced-db/Gmail.sqlite` | `mcp__claude_ai_Gmail__gmail_search_messages` |
 | Calendar writes | `mcp__claude_ai_Google_Calendar__gcal_create_event` | — |
 | WhatsApp send | ❌ Not available from cloud | — |
 
@@ -107,7 +107,7 @@ subprocess.run(["pip3", "install", "boto3", "--break-system-packages", "-q"], ca
 import boto3
 os.makedirs(os.path.expanduser("~/synced-db"), exist_ok=True)
 s3 = boto3.client("s3", endpoint_url="https://87fc573113247ec5fc93a6cc77401204.r2.cloudflarestorage.com", aws_access_key_id="b6e345139d3cde2c83e6914c8ac6ac8d", aws_secret_access_key="7de8c327382dda91f30f6b3973028f800b207744bdf2b06b1088f777dbd40a8a", region_name="auto")
-for f in ["ChatStorage.sqlite", "Calendar.sqlitedb", "Reminders.sqlite"]:
+for f in ["ChatStorage.sqlite", "Calendar.sqlitedb", "Reminders.sqlite", "Gmail.sqlite"]:
     s3.download_file("sanat-db-sync", f, os.path.expanduser(f"~/synced-db/{f}"))
 ```
 
@@ -140,6 +140,14 @@ For WhatsApp, Apple Calendar, and Apple Reminders — always go to SQLite direct
 - **Cloud:** `~/synced-db/Calendar.sqlitedb`
 - **Table:** `CalendarItem` (summary, start_date, end_date — add 978307200 to convert to Unix timestamp), join `Location` for location text
 - **Rule:** Any calendar search → SQLite first. MCP only for "what's next / upcoming now" queries.
+
+### Gmail (synced via IMAP)
+- **Mac:** `mcp__claude_ai_Gmail__gmail_search_messages` (MCP primary), or `~/synced-db/Gmail.sqlite`
+- **Cloud:** `~/synced-db/Gmail.sqlite`
+- **Table:** `emails` (message_id, sender, sender_email, subject, date, date_timestamp, body, snippet, is_read, labels)
+- **Query:** `SELECT sender, subject, date, snippet FROM emails ORDER BY date_timestamp DESC LIMIT 20`
+- **Account:** sanatarora2007@gmail.com
+- **Rule:** On Mac, use Gmail MCP first. On cloud, use synced SQLite.
 
 ### Apple Reminders
 - **Mac:** `~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Data-A5FBE7B2-70BC-4FA4-BA7A-C5376D78F941.sqlite`
