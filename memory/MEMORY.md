@@ -1,0 +1,13 @@
+- [Sanat's Full Operational Context](user_context.md) — Plaksha BTech, ADHD, AgriGuru/CTLC/Bloom's/fitness commitments, key people, tools
+- [Sanat's Personality & Behavioral Patterns](user_personality.md) — Collisional thinker, time-blind, initiation gap, mentorship need, diffusion risk
+- [How to Work with Sanat](feedback_communication_style.md) — Direct, no sugarcoating, first physical actions, mentor/ops manager role
+- [WhatsApp Search Strategy](feedback_whatsapp_search.md) — Use SQLite directly for all searches; MCP only for latest (<1hr) messages
+- [Apple Mail Search Strategy](feedback_apple_mail_search.md) — Use SQLite (Envelope Index) directly for all searches; MCP only for latest (<1hr) messages
+- ["Mail" = Gmail by default](feedback_mail_default.md) — "mail" means Gmail unless he explicitly says "Apple Mail"
+- [Apple Calendar Search Strategy](feedback_apple_calendar_search.md) — Use SQLite (Calendar.sqlitedb) directly for all searches; MCP only for imminent/next events
+- [How to Check Sanat's Location](reference_location.md) — Use iMCP for GPS coordinates + Google Maps MCP for geocoding/reverse geocoding
+- [Maps Priority](feedback_maps_priority.md) — Google Maps MCP is primary; Apple Maps (iMCP) only as fallback if Google Maps fails/quota runs out
+- [Weather via iMCP](feedback_weather.md) — Always use iMCP for weather; proactively include weather for any travel/directions/outdoor queries
+- [Always Open Links in Browser](feedback_open_links.md) — Never paste URLs as text; always open them in Chrome via browser tools
+- [Moodle URL](reference_moodle.md) — "moodle" = open dle.plaksha.edu.in in Arc
+- ["Show Me" = Reveal in Finder](feedback_show_me_finder.md) — Select file/folder in Finder via osascript, never open it
