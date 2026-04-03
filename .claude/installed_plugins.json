@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "plugins": {
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/code-review/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.568Z"
+      }
+    ],
+    "feature-dev@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/feature-dev/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.569Z"
+      }
+    ],
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.568Z"
+      }
+    ],
+    "playground@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/playground/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.567Z"
+      }
+    ],
+    "claude-md-management@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-01T23:36:46.982Z"
+      }
+    ],
+    "pr-review-toolkit@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/pr-review-toolkit/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.569Z"
+      }
+    ],
+    "skill-creator@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.569Z"
+      }
+    ],
+    "claude-code-setup@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/claude-code-setup/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-01T23:36:46.982Z"
+      }
+    ],
+    "math-olympiad@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/math-olympiad/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.567Z"
+      }
+    ],
+    "commit-commands@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/commit-commands/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.568Z"
+      }
+    ],
+    "code-simplifier@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/code-simplifier/1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-01T23:36:46.982Z"
+      }
+    ],
+    "mcp-server-dev@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/mcp-server-dev/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.568Z"
+      }
+    ],
+    "plugin-dev@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/plugin-dev/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.567Z"
+      }
+    ],
+    "security-guidance@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/Users/sanatarora/.claude/plugins/cache/claude-plugins-official/security-guidance/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-01T23:36:46.982Z",
+        "lastUpdated": "2026-04-02T11:09:36.568Z"
+      }
+    ]
+  }
+}
