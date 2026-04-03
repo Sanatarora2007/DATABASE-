@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "/Users/sanatarora/.npm-global/bin/playwright-mcp",
+      "args": []
+    }
+  }
+}

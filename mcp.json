@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "music": {
+      "command": "npx",
+      "args": ["-y", "@pedrocid/music-mcp@latest"]
+    }
+  }
+}
