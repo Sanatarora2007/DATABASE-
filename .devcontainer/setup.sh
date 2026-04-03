@@ -9,6 +9,13 @@ npm install -g @anthropic-ai/claude-code
 # Create .claude directory structure
 mkdir -p ~/.claude/projects
 
+# Set up Claude auth from Codespace secret
+if [ -n "$CLAUDE_CREDENTIALS" ]; then
+    echo "$CLAUDE_CREDENTIALS" > ~/.claude/.credentials.json
+    chmod 600 ~/.claude/.credentials.json
+    echo "✓ Claude auth configured from secret"
+fi
+
 # Symlink skills
 ln -sf "$(pwd)/.claude/skills" ~/.claude/skills
 
