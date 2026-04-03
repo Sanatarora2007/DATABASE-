@@ -67,9 +67,45 @@ Attendance is in crisis across nearly every subject. Always check ATTENDANCE lis
 
 ---
 
+## Environment Detection — GLOBAL RULE
+
+At the start of every conversation, detect which environment you're running in. This determines how ALL data access works — every skill, every query, every tool call.
+
+**How to detect:**
+- If `~/Library/Group Containers/` exists → **Mac mode**
+- Otherwise → **Cloud mode** (Codespaces, Linux, remote)
+
+### Mac Mode — Data Sources
+
+| Data | Primary (SQLite) | Fallback (MCP) |
+|------|-----------------|----------------|
+| WhatsApp | `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` | `mcp__whatsapp__*` |
+| Calendar | `~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb` | `mcp__apple-events__calendar_events` |
+| Reminders | `~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Data-A5FBE7B2-70BC-4FA4-BA7A-C5376D78F941.sqlite` | `mcp__apple-events__reminders_tasks` |
+| Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` | — |
+| Calendar writes | AppleScript via `mcp__macos-automator__execute_script` | `mcp__apple-events__calendar_events` create |
+| WhatsApp send | `mcp__whatsapp__send_message` | — |
+
+### Cloud Mode — Data Sources
+
+| Data | Primary (synced SQLite) | Fallback (cloud MCP) |
+|------|------------------------|---------------------|
+| WhatsApp | `~/synced-db/ChatStorage.sqlite` | ⚠️ "WhatsApp unavailable — run `~/refresh-db.sh` or check Mac is awake" |
+| Calendar | `~/synced-db/Calendar.sqlitedb` | `mcp__claude_ai_Google_Calendar__gcal_list_events` |
+| Reminders | `~/synced-db/Reminders.sqlite` | ⚠️ "Check Apple Reminders on your phone" |
+| Gmail | `mcp__claude_ai_Gmail__gmail_search_messages` | — |
+| Calendar writes | `mcp__claude_ai_Google_Calendar__gcal_create_event` | — |
+| WhatsApp send | ❌ Not available from cloud | — |
+
+**Cloud SQLite refresh:** Run `~/refresh-db.sh` to pull latest snapshots from GitHub. Databases sync from Mac on every change (fswatch trigger).
+
+**What doesn't work from cloud:** WhatsApp sending, Apple Mail, Moodle (Chrome), macOS Automator, Music. Read-only access to WhatsApp, Calendar, and Reminders via synced SQLite.
+
+---
+
 ## SQLite-First Rules — Never Use MCP Before Checking SQLite
 
-For WhatsApp and Apple Calendar, always go to SQLite directly. MCP tools are fallbacks only.
+For WhatsApp, Apple Calendar, and Apple Reminders — always go to SQLite directly. MCP tools are fallbacks only. On cloud, use synced SQLite at `~/synced-db/` first.
 
 ### Mail Priority
 - **"Mail" always means Gmail first.** Use Gmail MCP as the primary source.
@@ -77,16 +113,25 @@ For WhatsApp and Apple Calendar, always go to SQLite directly. MCP tools are fal
 - Never use Apple Mail SQLite.
 
 ### WhatsApp
-- **Contacts:** `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ContactsV2.sqlite` → table `ZWAADDRESSBOOKCONTACT` (ZFULLNAME, ZPHONENUMBER)
-- **Messages/Chats/Media:** `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite` → tables `ZWAMESSAGE`, `ZWACHATSESSION`, `ZWAMEDIAITEM`
+- **Mac:** `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ChatStorage.sqlite`
+- **Cloud:** `~/synced-db/ChatStorage.sqlite`
+- **Contacts:** `~/Library/Group Containers/group.net.whatsapp.WhatsApp.shared/ContactsV2.sqlite` (Mac only) → table `ZWAADDRESSBOOKCONTACT` (ZFULLNAME, ZPHONENUMBER)
+- **Tables:** `ZWAMESSAGE`, `ZWACHATSESSION`, `ZWAMEDIAITEM`
 - **FTS:** `fts_messages` virtual table exists for keyword search
 - **Indexes created:** `idx_chatsession_partnername`, `idx_chatsession_unread`, `idx_message_fromjid`, `idx_message_fromjid_date`, `idx_mediaitem_localpath`
 - **Rule:** Any WhatsApp task → SQLite first. Never call `list_chats`, `search_contacts`, or `list_messages` MCP tools before checking SQLite.
 
 ### Apple Calendar
-- **DB:** `~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`
+- **Mac:** `~/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb`
+- **Cloud:** `~/synced-db/Calendar.sqlitedb`
 - **Table:** `CalendarItem` (summary, start_date, end_date — add 978307200 to convert to Unix timestamp), join `Location` for location text
 - **Rule:** Any calendar search → SQLite first. MCP only for "what's next / upcoming now" queries.
+
+### Apple Reminders
+- **Mac:** `~/Library/Group Containers/group.com.apple.reminders/Container_v1/Stores/Data-A5FBE7B2-70BC-4FA4-BA7A-C5376D78F941.sqlite`
+- **Cloud:** `~/synced-db/Reminders.sqlite`
+- **Table:** `ZREMCDSAVEDREMINDER` (ZTITLE, ZDUEDATE, ZPRIORITY, ZCOMPLETED, ZDISPLAYDATEDATE). Join `ZREMCDBASELIST` for list names ("Journey", "ATTENDANCE").
+- **Rule:** Any reminders task → SQLite first. MCP only as fallback.
 
 ---
 
