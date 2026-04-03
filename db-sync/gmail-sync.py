@@ -78,25 +78,41 @@ def fetch_emails():
     mail.login(GMAIL_USER, GMAIL_PASS)
     mail.select("INBOX")
 
-    # Fetch emails from last 7 days
-    import datetime
-    since = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%d-%b-%Y")
-    status, messages = mail.search(None, f'(SINCE {since})')
+    # Fetch ALL emails
+    status, messages = mail.search(None, "ALL")
 
     if status != "OK":
         print("Failed to search")
         return
 
     msg_ids = messages[0].split()
-    print(f"Found {len(msg_ids)} emails from last 7 days")
+    print(f"Found {len(msg_ids)} total emails")
+
+    # Check which ones we already have
+    existing = set()
+    db_check = sqlite3.connect(DB_PATH)
+    try:
+        for row in db_check.execute("SELECT message_id FROM emails"):
+            existing.add(row[0])
+    except:
+        pass
+    db_check.close()
 
     count = 0
-    for mid in msg_ids[-100:]:  # Last 100 max
+    skipped = 0
+    for mid in msg_ids:
+        # Quick check: fetch just headers first to get Message-ID
         status, data = mail.fetch(mid, "(RFC822)")
         if status != "OK":
             continue
 
         msg = email.message_from_bytes(data[0][1])
+
+        # Skip if already synced
+        check_id = msg.get("Message-ID", "")
+        if check_id in existing:
+            skipped += 1
+            continue
 
         message_id = msg.get("Message-ID", f"unknown-{mid}")
         sender_raw = decode_str(msg.get("From", ""))
@@ -130,7 +146,7 @@ def fetch_emails():
     db.commit()
     db.close()
     mail.logout()
-    print(f"Synced {count} emails to {DB_PATH}")
+    print(f"Synced {count} new emails, skipped {skipped} existing → {DB_PATH}")
 
 def upload_to_r2():
     import boto3
