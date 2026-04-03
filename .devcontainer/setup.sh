@@ -73,9 +73,15 @@ bash ~/refresh-db.sh 2>/dev/null || echo "⚠ Initial DB pull failed — set R2 
 # Auto-refresh every 30 seconds via cron
 (crontab -l 2>/dev/null; echo "* * * * * bash ~/refresh-db.sh >> /tmp/db-refresh.log 2>&1") | sort -u | crontab -
 (crontab -l 2>/dev/null; echo "* * * * * sleep 30 && bash ~/refresh-db.sh >> /tmp/db-refresh.log 2>&1") | sort -u | crontab -
+
+# Gmail IMAP sync every 5 minutes (runs independently of Mac)
+REPO_DIR_ABS="$(pwd)"
+(crontab -l 2>/dev/null; echo "*/5 * * * * cd $REPO_DIR_ABS && python3 db-sync/gmail-sync.py >> /tmp/gmail-sync.log 2>&1") | sort -u | crontab -
+
 sudo service cron start 2>/dev/null || true
 
 echo "✓ R2 auto-refresh installed (every 30 seconds)"
+echo "✓ Gmail IMAP sync installed (every 5 minutes, independent of Mac)"
 
 echo ""
 echo "=== Claude Code Setup Complete ==="

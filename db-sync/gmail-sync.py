@@ -76,7 +76,7 @@ def fetch_emails():
 
     mail = imaplib.IMAP4_SSL(IMAP_HOST)
     mail.login(GMAIL_USER, GMAIL_PASS)
-    mail.select("INBOX")
+    mail.select('"[Gmail]/All Mail"')
 
     # Fetch ALL emails
     status, messages = mail.search(None, "ALL")
