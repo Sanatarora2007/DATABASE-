@@ -102,13 +102,41 @@ At the start of every conversation, detect which environment you're running in. 
 **Before ANY SQLite query in cloud mode, ALWAYS download from R2 first. This is non-negotiable.** Run this exact code:
 
 ```python
-import subprocess, os
+import subprocess, os, gzip, shutil, time
 subprocess.run(["pip3", "install", "boto3", "--break-system-packages", "-q"], capture_output=True)
 import boto3
+from datetime import timezone
+
 os.makedirs(os.path.expanduser("~/synced-db"), exist_ok=True)
 s3 = boto3.client("s3", endpoint_url="https://87fc573113247ec5fc93a6cc77401204.r2.cloudflarestorage.com", aws_access_key_id="b6e345139d3cde2c83e6914c8ac6ac8d", aws_secret_access_key="7de8c327382dda91f30f6b3973028f800b207744bdf2b06b1088f777dbd40a8a", region_name="auto")
-for f in ["ChatStorage.sqlite", "Calendar.sqlitedb", "Reminders.sqlite", "Gmail.sqlite"]:
-    s3.download_file("sanat-db-sync", f, os.path.expanduser(f"~/synced-db/{f}"))
+
+def sync_db(f):
+    dest = os.path.expanduser(f"~/synced-db/{f}")
+    # Skip if local file exists and is less than 5 minutes old
+    if os.path.exists(dest) and (time.time() - os.path.getmtime(dest)) < 300:
+        print(f"✓ {f} (cached)")
+        return
+    # Try compressed version first (current upload format)
+    try:
+        gz = dest + ".gz"
+        s3.download_file("sanat-db-sync", f + ".gz", gz)
+        with gzip.open(gz, "rb") as f_in, open(dest, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        os.remove(gz)
+        print(f"✓ {f} (from .gz)")
+    except Exception:
+        # Fall back to uncompressed
+        try:
+            s3.download_file("sanat-db-sync", f, dest)
+            print(f"✓ {f} (uncompressed)")
+        except Exception as e:
+            print(f"✗ {f}: {e}")
+
+# Call only what you need:
+# sync_db("ChatStorage.sqlite")   ← WhatsApp queries
+# sync_db("Calendar.sqlitedb")    ← Calendar queries
+# sync_db("Reminders.sqlite")     ← Reminders queries
+# sync_db("Gmail.sqlite")         ← Gmail queries (fallback only)
 ```
 
 This works in any environment — Codespaces, Claude Code mobile, any cloud terminal. Always run it before querying synced SQLite.
